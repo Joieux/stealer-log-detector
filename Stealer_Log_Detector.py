@@ -7,7 +7,12 @@ Detects credential‑stealer log archives by inspecting their internal filenames
 :license: MIT, see LICENSE for more details.
 """
 
-import os, re, json, argparse, hashlib, logging
+import os
+import re
+import json
+import argparse
+import hashlib
+import logging
 from datetime import datetime
 from pathlib import Path
 from zipfile import ZipFile, BadZipFile
@@ -52,16 +57,22 @@ def list_archive_files(path: Path) -> List[str]:
         if ext == ".zip":
             with ZipFile(path) as zf:
                 names = zf.namelist()
-        elif ext == ".rar" and rarfile:
-            with rarfile.RarFile(path) as rf:
-                names = rf.namelist()
-        elif ext == ".7z" and py7zr:
-            with py7zr.SevenZipFile(path, mode="r") as sz:
-                names = sz.getnames()
+        elif ext == ".rar":
+            if rarfile:
+                with rarfile.RarFile(path) as rf:
+                    names = rf.namelist()
+            else:
+                logging.warning(f"rarfile module not installed, cannot scan {path}")
+        elif ext == ".7z":
+            if py7zr:
+                with py7zr.SevenZipFile(path, mode="r") as sz:
+                    names = sz.getnames()
+            else:
+                logging.warning(f"py7zr module not installed, cannot scan {path}")
         elif ext in {".gz", ".tgz", ".tar"}:
             names = ["<single-file-archive>"]
     except Exception as e:
-        logging.debug(f"Cannot open {path}: {e}")
+        logging.warning(f"Cannot open {path}: {e}")
     return names
 
 def score_names(names: List[str]) -> Tuple[int, int]:
@@ -84,13 +95,18 @@ def scan_path(root: Path, min_severity: str = "likely") -> List[Dict]:
         elif high == 1 or med >= 3:
             severity = "likely"
         if severity and (severity == "confirmed" or min_severity == "likely"):
+            try:
+                size_kb = round(p.stat().st_size / 1024, 1)
+            except Exception as e:
+                logging.warning(f"Cannot access file size for {p}: {e}")
+                size_kb = 0.0
             hits.append({
                 "file": str(p),
                 "sha1": hash_path(p),
                 "high_hits": high,
                 "medium_hits": med,
                 "severity": severity,
-                "size_kb": round(p.stat().st_size / 1024, 1),
+                "size_kb": size_kb,
                 "detected": datetime.utcnow().isoformat() + "Z",
             })
     return hits
@@ -110,9 +126,14 @@ def main():
     severity_floor = "confirmed" if args.confirmed_only else "likely"
     results = scan_path(root, severity_floor)
     if args.report:
-        Path(args.report).write_text(json.dumps(results, indent=2))
-        print(f"[+] Report saved to {args.report} ({len(results)} hits)")
+        try:
+            Path(args.report).write_text(json.dumps(results, indent=2))
+            print(f"[+] Report saved to {args.report} ({len(results)} hits)")
+        except Exception as e:
+            print(f"[-] Could not save report to {args.report}: {e}")
     else:
+        if not results:
+            print("No stealer logs detected.")
         for r in results:
             print(f"[{r['severity'].upper():9}] {r['file']} "
                   f"(high={r['high_hits']} med={r['medium_hits']}, {r['size_kb']} KB)")
