@@ -10,7 +10,13 @@ Stealer‑Log Detector works recursively, identifies high-value artifacts (like 
 No external services, no telemetry – just efficient, signature-based detection for infosec professionals, threat analysts, and incident responders.
 
 ---
-
+## Table of Contents
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Contributing](#contributing)
+- [License](#license)
+---
 ## Features
 
 - Signature‑based detection of high‑value artefacts: `Passwords.txt`, `Cookies/`, `wallets/`, and more.
@@ -24,5 +30,60 @@ No external services, no telemetry – just efficient, signature-based detection
 
 ## Installation
 
-```bash
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/Joieux/stealer-log-detector.git
+   cd stealer-log-detector
+   
+2. (Optional but recommended) Set up a Python virtual environment:
+   ```bash
+   
+  python -m venv venv
+  source venv/bin/activate   # On Windows: venv\Scripts\activate   
+
+3. Install the dependencies:
+  ```bash
 python -m pip install -r requirements.txt
+
+---
+## Usage
+To scan a directory:
+  ```bash
+python stealer_log_detector.py --scan /path/to/directory
+
+# Example Outut:
+```JSON
+{
+    "status": "success",
+    "summary": {
+        "confirmed": 2,
+        "likely": 3
+    },
+    "artifacts": [
+        {"type": "passwords.txt", "path": "example/passwords.txt"},
+        {"type": "wallet", "path": "example/crypto_wallet.dat"}
+    ]
+}
+---
+# For more options and help, run:
+  ```bash
+python stealer_log_detector.py --help
+
+---
+### Contributing
+# Contributions are welcome! To contribute:
+
+  1. Fork the repository.
+  2. Create a feature branch:
+```bash
+git checkout -b feature/your-feature-name
+
+3. Commit your changes with clear messages.
+4. Submit a pull request.
+
+# Please ensure your code follows the project's coding style and includes tests where applicable.
+
+---
+License
+----
+This project is licensed under the MIT License. See the LICENSE file for details.
